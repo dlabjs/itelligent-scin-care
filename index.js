@@ -185,7 +185,9 @@ async function finishQuiz() {
 
     try {
         if (!ai) {
-            throw new Error("AI 클라이언트가 초기화되지 않았습니다. API 키를 확인해주세요.");
+            // This error will be caught and a user-friendly message displayed.
+            // This covers the case where API_KEY was not available at initialization.
+            throw new Error("AI client is not initialized. This could be due to a missing or invalid API key configuration.");
         }
 
         const analysisPrompt = constructAnalysisPrompt(userAnswers);
@@ -212,10 +214,13 @@ async function finishQuiz() {
     } catch (error) {
         console.error("Error during AI analysis:", error);
         let userFriendlyMessage = "피부 타입 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
-        if (error.message.includes("API key not valid")) {
-            userFriendlyMessage = "API 키가 유효하지 않습니다. 관리자에게 문의하세요.";
-        } else if (error.message.includes("Quota exceeded")) {
-            userFriendlyMessage = "API 사용량이 초과되었습니다. 나중에 다시 시도해주세요.";
+        // Check for specific error messages from Gemini API if needed
+        if (error.message && error.message.toLowerCase().includes("api key not valid")) {
+            userFriendlyMessage = "AI 분석 서비스에 문제가 발생했습니다. 관리자에게 문의해주세요. (API Key Invalid)";
+        } else if (error.message && error.message.toLowerCase().includes("quota exceeded")) {
+            userFriendlyMessage = "AI 분석 서비스 사용량이 초과되었습니다. 나중에 다시 시도해주세요.";
+        } else if (error.message && error.message.includes("AI client is not initialized")) {
+             userFriendlyMessage = "AI 피부 분석 기능을 현재 환경에서는 사용하기 어렵습니다. 관리자에게 문의하거나 올바르게 설정된 환경인지 확인해 주세요.";
         }
         displayError(userFriendlyMessage);
     } finally {
@@ -258,19 +263,14 @@ function constructAnalysisPrompt(answers) {
 
     if (!quizConfig.detailedAnalysis) {
         prompt += "\n참고: 세부 특성 분석과 맞춤 관리 팁은 생략하고 피부 타입만 알려주세요.";
-        // JSON 구조에서 characteristics와 careTips를 제외하도록 요청을 수정해야 하지만,
-        // 일단은 생성 후 클라이언트에서 필터링하거나, 프롬프트로만 요청.
-        // 이 예제에서는 JSON 구조는 유지하고 내용이 비도록 유도.
     }
     if (quizConfig.productRecommendation === '필요 없음') {
         prompt += "\n참고: 추천 제품 정보는 제공하지 마세요.";
-         // JSON 구조에서 recommendedProducts를 제외하거나 빈 배열로 유도.
     } else if (quizConfig.productRecommendation === '간단 텍스트') {
          prompt += "\n참고: 추천 제품은 이름만 간단히 텍스트로 제공해주세요. recommendedProducts 배열에 { \"name\": \"제품명\" } 형식으로 넣어주세요.";
     } else if (quizConfig.productRecommendation === '링크 포함') {
         prompt += "\n참고: 추천 제품은 이름과 함께 구매 링크 예시(실제 링크 아니어도 됨)를 포함하여 제공해주세요. recommendedProducts 배열에 { \"name\": \"제품명\", \"link\": \"https://example.com/product-link\" } 형식으로 넣어주세요.";
     }
-    // '상세 정보'는 기본 프롬프트 JSON 구조에 따름.
 
     return prompt;
 }
@@ -301,9 +301,8 @@ function displayResults(data) {
         html += `<h3>🎁 추천 제품 정보</h3>`;
         data.recommendedProducts.forEach(product => {
             html += `<div class="product-card">`;
-            // 상세 정보 스타일
             if (quizConfig.productRecommendation === '상세 정보') {
-                html += `<img src="https://via.placeholder.com/100?text=${encodeURIComponent(product.category || '제품')}" alt="${product.name || '추천 제품'}">`; // Placeholder 이미지
+                html += `<img src="https://via.placeholder.com/100?text=${encodeURIComponent(product.category || '제품')}" alt="${product.name || '추천 제품'}">`;
                 html += `<h4>${product.name || '제품명 없음'}</h4>`;
                 if(product.category) html += `<p><strong>카테고리:</strong> ${product.category}</p>`;
                 if(product.description) html += `<p>${product.description}</p>`;
@@ -311,13 +310,11 @@ function displayResults(data) {
                 if(product.priceRange) html += `<p><strong>가격대:</strong> ${product.priceRange}</p>`;
                 if(product.usageTip) html += `<p><strong>사용 팁:</strong> ${product.usageTip}</p>`;
             } 
-            // 링크 포함 스타일
             else if (quizConfig.productRecommendation === '링크 포함') {
                 html += `<h4>${product.name || '제품명 없음'}</h4>`;
                 if (product.link) html += `<p><a href="${product.link}" target="_blank" rel="noopener noreferrer">제품 보러가기 (예시 링크)</a></p>`;
                 else html += `<p>구매 링크 정보 없음</p>`
             } 
-            // 간단 텍스트 스타일
             else if (quizConfig.productRecommendation === '간단 텍스트') {
                  html += `<h4>${product.name || '제품명 없음'}</h4>`;
             }
@@ -326,7 +323,6 @@ function displayResults(data) {
     } else if (quizConfig.productRecommendation !== '필요 없음') {
         html += `<p>추천 드릴 만한 제품 정보를 현재 가져올 수 없습니다.</p>`
     }
-
 
     resultContent.innerHTML = html;
 }
@@ -338,4 +334,3 @@ function displayError(message) {
     errorContainer.classList.remove('hidden');
     errorMessage.textContent = message;
 }
-
