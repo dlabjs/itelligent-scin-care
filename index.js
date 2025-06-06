@@ -96,11 +96,14 @@ const errorContainer = document.getElementById('error-container');
 const errorMessage = document.getElementById('error-message');
 const errorRestartBtn = document.getElementById('error-restart-btn');
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = "YOUR_ACTUAL_API_KEY_HERE"; // 👈 여기에 실제 API 키를 넣으세요!
 if (!API_KEY) {
+    // 이 부분은 이제 API 키를 직접 넣었으므로 이론상으론 실행되지 않지만, 만약을 위해 남겨둡니다.
     displayError("API 키가 설정되지 않았습니다. 애플리케이션 설정을 확인해주세요.");
 }
-const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
+// API_KEY가 직접 할당되었으므로, new GoogleGenAI 호출 시 항상 유효한 (문자열)키를 갖게 됩니다.
+//ただし、キーが実際に有効であるかどうかは、GoogleGenAIライブラリが検証します。
+const ai = new GoogleGenAI({ apiKey: API_KEY }); 
 
 document.addEventListener('DOMContentLoaded', () => {
     startQuiz();
